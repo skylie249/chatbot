@@ -17,7 +17,7 @@ export default defineConfig({
             req.on('data', chunk => {
               body += chunk.toString();
             });
-            req.on('end', () => {
+            req.on('end', async () => {
               try {
                 const data = JSON.parse(body);
                 const { type, content, title } = data;
@@ -32,16 +32,41 @@ export default defineConfig({
                 if (title) logEntry += `제목: ${title}\n`;
                 logEntry += `내용: ${content}\n----------------------------------------\n\n`;
 
+                const typeName = type === 'proposal' ? '안건 제안' : '익명 고충 상담';
+
                 if (type === 'proposal') {
                   fs.appendFileSync(path.resolve('./proposals.txt'), logEntry);
                 } else if (type === 'counsel') {
                   fs.appendFileSync(path.resolve('./counsel.txt'), logEntry);
                 }
 
+                const transporter = nodemailer.createTransport({
+                  host: 'smtp.office365.com',
+                  port: 587,
+                  secure: false,
+                  auth: {
+                    user: 'weeklyadmin@happyict.co.kr',
+                    pass: 'Happy1234'
+                  },
+                  tls: {
+                    ciphers: 'SSLv3'
+                  }
+                });
+
+                const mailOptions = {
+                  from: '"노사협의회 플랫폼" <weeklyadmin@happyict.co.kr>',
+                  to: 'hogyun.kim@happyict.co.kr',
+                  subject: `[노사협의회 플랫폼] 새로운 ${typeName}이 접수되었습니다`,
+                  text: `새로운 ${typeName}이 접수되었습니다.\n\n${title ? `제목: ${title}\n` : ''}내용:\n${content}`
+                };
+
+                await transporter.sendMail(mailOptions);
+
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({ success: true }));
               } catch (err) {
+                console.error('Email send error:', err);
                 res.statusCode = 500;
                 res.end(JSON.stringify({ success: false, error: err.message }));
               }
