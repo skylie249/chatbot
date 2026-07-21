@@ -6,7 +6,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, content } = req.body;
+    const { email, category, problem, suggestion } = req.body;
+
+    const filterProfanity = (text) => {
+      if (!text) return text;
+      const badWords = ['개새끼', '씨발', '병신', '지랄', '좆', '미친', '염병', '새끼', '존나', '씹', '닥쳐', '꺼져', '호로자식', '등신', '호구', '느금마', '느애비', '엠창', '창녀', '걸레',
+        '시발', '씨빨', '씨바', '시바', '씨벌', '개새', '새키', '졸라', '찌랄', 'ㅅㅂ', 'ㅂㅅ', 'ㅈㄹ', 'ㅈㄴ'];
+      let filtered = text;
+      badWords.forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        filtered = filtered.replace(regex, '*'.repeat(word.length));
+      });
+      return filtered;
+    };
+
+    const filteredProblem = filterProfanity(problem);
+    const filteredSuggestion = filterProfanity(suggestion);
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.office365.com',
@@ -25,7 +40,7 @@ export default async function handler(req, res) {
       from: process.env.SMTP_FROM || '"노사협의회 챗봇" <weeklyadmin@happyict.co.kr>',
       to: process.env.SMTP_TO || 'mem.employee@happyict.co.kr',
       subject: '[노사협의회 챗봇] 새로운 문의가 접수되었습니다',
-      text: `챗봇을 통해 새로운 문의가 접수되었습니다.\n\n답변 받을 이메일: ${email}\n\n문의 내용:\n${content}`
+      text: `챗봇을 통해 새로운 문의가 접수되었습니다.\n\n답변 받을 이메일: ${email}\n\n분류: ${category}\n\n현상 및 문제점:\n${filteredProblem || '없음'}\n\n개선 제안 아이디어:\n${filteredSuggestion}`
     };
 
     await transporter.sendMail(mailOptions);

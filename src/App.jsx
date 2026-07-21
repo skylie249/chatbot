@@ -26,28 +26,41 @@ export default function LaborCouncilHome() {
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [chatCategory, setChatCategory] = useState('근로조건');
+  const [chatProblem, setChatProblem] = useState('');
+  const [chatSuggestion, setChatSuggestion] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [chatAgreed, setChatAgreed] = useState(false);
 
   // 폼 및 모달 상태
   const [modalState, setModalState] = useState({ isOpen: false, type: null }); // 'proposal' | 'counsel'
-  const [formData, setFormData] = useState({ title: '', content: '' });
+  const [formData, setFormData] = useState({ category: '근로조건', problem: '', suggestion: '' });
+  const [formAgreed, setFormAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 챗봇 메시지 전송 처리
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !userEmail.trim()) return;
+    if (!chatSuggestion.trim() || !userEmail.trim()) return;
 
-    const userText = inputMessage;
+    const userText = `[${chatCategory}] 문의 접수`;
     setChatMessages(prev => [...prev, { sender: 'user', text: userText }]);
-    setInputMessage('');
+    
+    setChatProblem('');
+    setChatSuggestion('');
+    setChatCategory('근로조건');
     setIsSubmitting(true);
 
     try {
       const response = await fetch('/api/chat-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, content: userText })
+        body: JSON.stringify({
+          email: userEmail,
+          category: chatCategory,
+          problem: chatProblem,
+          suggestion: chatSuggestion
+        })
       });
 
       if (response.ok) {
@@ -56,7 +69,7 @@ export default function LaborCouncilHome() {
           ...prev,
           {
             sender: 'bot',
-            text: `'${userText}'에 대한 문의가 담당자에게 성공적으로 전달되었습니다. 확인 후 메일로 답변드리겠습니다.`,
+            text: `담당자에게 성공적으로 문의가 전달되었습니다. 확인 후 메일로 답변드리겠습니다.`,
             options: [
               { label: '처음으로 돌아가기', action: 'SELECT_MENU', value: 'HOME' }
             ]
@@ -126,6 +139,10 @@ export default function LaborCouncilHome() {
         }
       } else if (option.value === 'INQUIRY') {
         setChatMode('inquiry');
+        setChatAgreed(false);
+        setChatCategory('근로조건');
+        setChatProblem('');
+        setChatSuggestion('');
         setChatMessages(prev => [...prev, {
           sender: 'bot',
           text: '답변을 받으실 이메일 주소와 문의 내용을 화면 하단에 입력해 주세요.'
@@ -134,6 +151,10 @@ export default function LaborCouncilHome() {
         setChatMode('menu');
         setInputMessage('');
         setUserEmail('');
+        setChatAgreed(false);
+        setChatCategory('근로조건');
+        setChatProblem('');
+        setChatSuggestion('');
         setChatMessages([{
           sender: 'bot',
           text: '처음으로 돌아왔습니다. 원하시는 메뉴를 선택해 주세요.',
@@ -165,7 +186,8 @@ export default function LaborCouncilHome() {
 
   const openModal = (type) => {
     setModalState({ isOpen: true, type });
-    setFormData({ title: '', content: '' });
+    setFormData({ category: '근로조건', problem: '', suggestion: '' });
+    setFormAgreed(false);
   };
 
   const closeModal = () => {
@@ -174,7 +196,7 @@ export default function LaborCouncilHome() {
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
-    if (!formData.content.trim()) return;
+    if (!formData.suggestion.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -183,8 +205,9 @@ export default function LaborCouncilHome() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: modalState.type,
-          title: formData.title,
-          content: formData.content
+          category: formData.category,
+          problem: formData.problem,
+          suggestion: formData.suggestion
         })
       });
 
@@ -345,30 +368,84 @@ export default function LaborCouncilHome() {
 
             {/* 챗봇 입력폼 */}
             {chatMode === 'inquiry' && (
-              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 flex flex-col gap-2">
-                <input
-                  type="email"
-                  value={userEmail}
-                  onChange={(e) => setUserEmail(e.target.value)}
-                  placeholder="답변 받을 이메일 주소 (필수)"
-                  required
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-600"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder="문의 내용을 입력하세요..."
-                    required
-                    className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-600"
+              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 flex flex-col gap-2 max-h-[260px] overflow-y-auto">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-600">분류 선택 (필수)</label>
+                  <select
+                    value={chatCategory}
+                    onChange={(e) => setChatCategory(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600 bg-white"
+                  >
+                    <option value="근로조건">근로조건</option>
+                    <option value="복리후생">복리후생</option>
+                    <option value="조직문화">조직문화</option>
+                    <option value="안전·보건">안전·보건</option>
+                    <option value="기타">기타</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-600">현상 및 문제점 (선택)</label>
+                  <textarea
+                    rows={2}
+                    value={chatProblem}
+                    onChange={(e) => setChatProblem(e.target.value)}
+                    placeholder="현재 어떤 불편이 있는지 작성..."
+                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600 resize-none"
                   />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-600">개선 제안 아이디어 (필수)</label>
+                  <textarea
+                    required
+                    rows={2}
+                    value={chatSuggestion}
+                    onChange={(e) => setChatSuggestion(e.target.value)}
+                    placeholder="어떻게 바뀌면 좋을지 제안..."
+                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600 resize-none"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-600">답변 받을 이메일 (필수)</label>
+                  <input
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="example@happyict.co.kr"
+                    required
+                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div className="flex items-start gap-1.5 px-1 mt-1">
+                  <input
+                    type="checkbox"
+                    id="chatAgreement"
+                    checked={chatAgreed}
+                    onChange={(e) => setChatAgreed(e.target.checked)}
+                    className="mt-0.5 cursor-pointer"
+                  />
+                  <label htmlFor="chatAgreement" className="text-[10px] text-slate-600 leading-tight cursor-pointer">
+                    [필수] 건전한 노사문화를 위해 욕설 및 비방은 삼가주시기 바랍니다. 작성 준수사항에 동의합니다.
+                  </label>
+                </div>
+
+                <div className="flex gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleOptionClick({ action: 'SELECT_MENU', value: 'HOME', label: '처음으로 돌아가기' })}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors"
+                  >
+                    이전으로
+                  </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors disabled:opacity-50"
+                    disabled={isSubmitting || !chatAgreed || !chatSuggestion.trim()}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <Send className="w-3.5 h-3.5" /> 제출하기
                   </button>
                 </div>
               </form>
@@ -418,26 +495,54 @@ export default function LaborCouncilHome() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">제목 (선택)</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-                  placeholder={modalState.type === 'proposal' ? '예: 구내식당 메뉴 개선 요청' : '예: 부서 내 업무 배분 관련 고충'}
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">분류 선택 (필수)</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white"
+                >
+                  <option value="근로조건">근로조건</option>
+                  <option value="복리후생">복리후생</option>
+                  <option value="조직문화">조직문화</option>
+                  <option value="안전·보건">안전·보건</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">현상 및 문제점 (선택)</label>
+                <textarea
+                  rows={3}
+                  value={formData.problem}
+                  onChange={(e) => setFormData({ ...formData, problem: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-shadow"
+                  placeholder="현재 어떤 불편이 있는지 작성해 주세요..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">내용 (필수)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">개선 제안 아이디어 (필수)</label>
                 <textarea
                   required
-                  rows={6}
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  rows={4}
+                  value={formData.suggestion}
+                  onChange={(e) => setFormData({ ...formData, suggestion: e.target.value })}
                   className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-shadow"
-                  placeholder="상세한 내용을 자유롭게 작성해 주세요..."
+                  placeholder="어떻게 바뀌면 좋을지 제안해 주세요..."
                 />
+              </div>
+
+              <div className="flex items-start gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
+                <input
+                  type="checkbox"
+                  id="formAgreement"
+                  checked={formAgreed}
+                  onChange={(e) => setFormAgreed(e.target.checked)}
+                  className="mt-0.5 cursor-pointer"
+                />
+                <label htmlFor="formAgreement" className="text-xs text-slate-700 leading-snug cursor-pointer">
+                  [필수] 건전한 노사문화를 위해 욕설, 비방, 인신공격 등의 내용은 삼가주시기 바랍니다. 위 작성 준수사항을 확인하였으며, 이에 동의합니다.
+                </label>
               </div>
 
               <div className="flex justify-end gap-3 mt-2">
@@ -450,7 +555,7 @@ export default function LaborCouncilHome() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !formData.content.trim()}
+                  disabled={isSubmitting || !formData.suggestion.trim() || !formAgreed}
                   className={`px-6 py-2.5 text-sm font-bold text-white rounded-lg transition-colors flex items-center gap-2 ${modalState.type === 'proposal'
                     ? 'bg-amber-500 hover:bg-amber-600'
                     : 'bg-indigo-600 hover:bg-indigo-700'
