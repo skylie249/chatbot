@@ -102,7 +102,8 @@ export default function LaborCouncilHome() {
                 { label: '행복ICT 취업규칙', action: 'DOWNLOAD', value: '행복ICT 취업규칙.pdf' },
                 { label: '행복ICT 내부규정', action: 'DOWNLOAD', value: '행복ICT 내부규정.pdf' },
                 { label: '행복ICT 개인정보 내부 관리 계획서', action: 'DOWNLOAD', value: '행복ICT 개인정보 내부관리 계획서.pdf' },
-                { label: '사내동호회운영규정', action: 'DOWNLOAD', value: '사내동호회운영규정.pdf' }
+                { label: '사내동호회운영규정', action: 'DOWNLOAD', value: '사내동호회운영규정.pdf' },
+                { label: '이전으로 돌아가기', action: 'SELECT_MENU', value: 'HOME' }
               ]
             }]);
           } else {
