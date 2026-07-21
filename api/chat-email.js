@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
     const mailOptions = {
       from: process.env.SMTP_FROM || '"노사협의회 챗봇" <weeklyadmin@happyict.co.kr>',
-      to: process.env.SMTP_TO || 'hogyun.kim@happyict.co.kr',
+      to: process.env.SMTP_TO || 'mem.employee@happyict.co.kr',
       subject: '[노사협의회 챗봇] 새로운 문의가 접수되었습니다',
       text: `챗봇을 통해 새로운 문의가 접수되었습니다.\n\n답변 받을 이메일: ${email}\n\n문의 내용:\n${content}`
     };
