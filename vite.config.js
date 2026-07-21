@@ -1,11 +1,14 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 import nodemailer from 'nodemailer'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
   plugins: [
     react(),
     {
@@ -41,12 +44,12 @@ export default defineConfig({
                 }
 
                 const transporter = nodemailer.createTransport({
-                  host: 'smtp.office365.com',
-                  port: 587,
+                  host: env.SMTP_HOST || 'smtp.office365.com',
+                  port: parseInt(env.SMTP_PORT || '587'),
                   secure: false,
                   auth: {
-                    user: 'weeklyadmin@happyict.co.kr',
-                    pass: 'Happy1234'
+                    user: env.SMTP_USER || 'weeklyadmin@happyict.co.kr',
+                    pass: env.SMTP_PASS || 'Happy1234'
                   },
                   tls: {
                     ciphers: 'SSLv3'
@@ -54,8 +57,8 @@ export default defineConfig({
                 });
 
                 const mailOptions = {
-                  from: '"노사협의회 플랫폼" <weeklyadmin@happyict.co.kr>',
-                  to: 'hogyun.kim@happyict.co.kr',
+                  from: env.SMTP_FROM || '"노사협의회 플랫폼" <weeklyadmin@happyict.co.kr>',
+                  to: env.SMTP_TO || 'hogyun.kim@happyict.co.kr',
                   subject: `[노사협의회 플랫폼] 새로운 ${typeName}이 접수되었습니다`,
                   text: `새로운 ${typeName}이 접수되었습니다.\n\n${title ? `제목: ${title}\n` : ''}내용:\n${content}`
                 };
@@ -91,12 +94,12 @@ export default defineConfig({
                 fs.appendFileSync(path.resolve('./chat_inquiries.txt'), logEntry);
 
                 const transporter = nodemailer.createTransport({
-                  host: 'smtp.office365.com',
-                  port: 587,
+                  host: env.SMTP_HOST || 'smtp.office365.com',
+                  port: parseInt(env.SMTP_PORT || '587'),
                   secure: false,
                   auth: {
-                    user: 'weeklyadmin@happyict.co.kr',
-                    pass: 'Happy1234'
+                    user: env.SMTP_USER || 'weeklyadmin@happyict.co.kr',
+                    pass: env.SMTP_PASS || 'Happy1234'
                   },
                   tls: {
                     ciphers: 'SSLv3'
@@ -104,9 +107,8 @@ export default defineConfig({
                 });
 
                 const mailOptions = {
-                  from: '"노사협의회 챗봇" <weeklyadmin@happyict.co.kr>',
-                  //to: 'hogyun.kim@happyict.co.kr, kisung77@happyict.co.kr,su5994@happyict.co.kr',
-                  to: 'hogyun.kim@happyict.co.kr',
+                  from: env.SMTP_FROM || '"노사협의회 챗봇" <weeklyadmin@happyict.co.kr>',
+                  to: env.SMTP_TO || 'hogyun.kim@happyict.co.kr',
                   subject: '[노사협의회 챗봇] 새로운 문의가 접수되었습니다',
                   text: `챗봇을 통해 새로운 문의가 접수되었습니다.\n\n답변 받을 이메일: ${email}\n\n문의 내용:\n${content}`
                 };
@@ -129,4 +131,5 @@ export default defineConfig({
       }
     }
   ],
+  };
 })
