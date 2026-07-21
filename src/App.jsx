@@ -80,62 +80,86 @@ export default function LaborCouncilHome() {
     }
   };
 
-  const handleOptionClick = (option) => {
+  const handleOptionClick = async (option) => {
     // Add user message
     setChatMessages(prev => [...prev, { sender: 'user', text: option.label }]);
 
-    setTimeout(() => {
-      if (option.action === 'SELECT_MENU') {
-        if (option.value === 'REGULATION') {
+    // 지연 효과 시뮬레이션
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    if (option.action === 'SELECT_MENU') {
+      if (option.value === 'REGULATION') {
+        try {
+          const response = await fetch('/api/check-ip');
+          const data = await response.json();
+          
+          if (data.allowed) {
+            setChatMessages(prev => [...prev, {
+              sender: 'bot',
+              text: '다운로드할 규정을 선택해 주세요.',
+              options: [
+                { label: '행복ICT 제규정', action: 'DOWNLOAD', value: '행복ICT 제규정.pdf' },
+                { label: '행복ICT 취업규칙', action: 'DOWNLOAD', value: '행복ICT 취업규칙.pdf' },
+                { label: '행복ICT 내부규정', action: 'DOWNLOAD', value: '행복ICT 내부규정.pdf' },
+                { label: '행복ICT 개인정보 내부 관리 계획서', action: 'DOWNLOAD', value: '행복ICT 개인정보 내부관리 계획서.pdf' },
+                { label: '사내동호회운영규정', action: 'DOWNLOAD', value: '사내동호회운영규정.pdf' }
+              ]
+            }]);
+          } else {
+            setChatMessages(prev => [...prev, {
+              sender: 'bot',
+              text: `인가된 사내 네트워크에서만 규정 파일을 다운로드할 수 있습니다.\n현재 접속 IP: ${data.ip}`,
+              options: [
+                { label: '처음으로 돌아가기', action: 'SELECT_MENU', value: 'HOME' }
+              ]
+            }]);
+          }
+        } catch (error) {
           setChatMessages(prev => [...prev, {
             sender: 'bot',
-            text: '다운로드할 규정을 선택해 주세요.',
+            text: '권한 확인 중 오류가 발생했습니다.',
             options: [
-              { label: '행복ICT 제규정', action: 'DOWNLOAD', value: '행복ICT 제규정.pdf' },
-              { label: '행복ICT 취업규칙', action: 'DOWNLOAD', value: '행복ICT 취업규칙.pdf' },
-              { label: '행복ICT 내부규정', action: 'DOWNLOAD', value: '행복ICT 내부규정.pdf' },
-              { label: '행복ICT 개인정보 내부 관리 계획서', action: 'DOWNLOAD', value: '행복ICT 개인정보 내부관리 계획서.pdf' },
-              { label: '사내동호회운영규정', action: 'DOWNLOAD', value: '사내동호회운영규정.pdf' }
-            ]
-          }]);
-        } else if (option.value === 'INQUIRY') {
-          setChatMode('inquiry');
-          setChatMessages(prev => [...prev, {
-            sender: 'bot',
-            text: '답변을 받으실 이메일 주소와 문의 내용을 화면 하단에 입력해 주세요.'
-          }]);
-        } else if (option.value === 'HOME') {
-          setChatMode('menu');
-          setInputMessage('');
-          setUserEmail('');
-          setChatMessages([{
-            sender: 'bot',
-            text: '처음으로 돌아왔습니다. 원하시는 메뉴를 선택해 주세요.',
-            options: [
-              { label: '규정 파일 다운로드', action: 'SELECT_MENU', value: 'REGULATION' },
-              { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' }
+              { label: '처음으로 돌아가기', action: 'SELECT_MENU', value: 'HOME' }
             ]
           }]);
         }
-      } else if (option.action === 'DOWNLOAD') {
+      } else if (option.value === 'INQUIRY') {
+        setChatMode('inquiry');
         setChatMessages(prev => [...prev, {
           sender: 'bot',
-          text: `[${option.label}] 파일 다운로드가 시작되었습니다. 다른 문의사항이 있으시면 아래 버튼을 눌러주세요.`,
+          text: '답변을 받으실 이메일 주소와 문의 내용을 화면 하단에 입력해 주세요.'
+        }]);
+      } else if (option.value === 'HOME') {
+        setChatMode('menu');
+        setInputMessage('');
+        setUserEmail('');
+        setChatMessages([{
+          sender: 'bot',
+          text: '처음으로 돌아왔습니다. 원하시는 메뉴를 선택해 주세요.',
           options: [
-            { label: '처음으로 돌아가기', action: 'SELECT_MENU', value: 'HOME' }
+            { label: '규정 파일 다운로드', action: 'SELECT_MENU', value: 'REGULATION' },
+            { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' }
           ]
         }]);
-
-        // 실제 파일 다운로드 (public 폴더 내 파일)
-        const fileUrl = `/${option.value}`;
-        const a = document.createElement("a");
-        a.href = fileUrl;
-        a.download = option.value;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
       }
-    }, 600);
+    } else if (option.action === 'DOWNLOAD') {
+      setChatMessages(prev => [...prev, {
+        sender: 'bot',
+        text: `[${option.label}] 파일 다운로드가 시작되었습니다. 다른 문의사항이 있으시면 아래 버튼을 눌러주세요.`,
+        options: [
+          { label: '처음으로 돌아가기', action: 'SELECT_MENU', value: 'HOME' }
+        ]
+      }]);
+
+      // 실제 파일 다운로드 (public 폴더 내 파일)
+      const fileUrl = `/${option.value}`;
+      const a = document.createElement("a");
+      a.href = fileUrl;
+      a.download = option.value;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   const openModal = (type) => {
