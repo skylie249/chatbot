@@ -21,7 +21,6 @@ export default function LaborCouncilHome() {
       text: '안녕하세요! 노사협의회 근로자위원 챗봇입니다. 원하시는 메뉴를 선택해 주세요.',
       options: [
         { label: '규정 파일 다운로드', action: 'SELECT_MENU', value: 'REGULATION' },
-        { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' },
         { label: '일반 문의 (AI 검색)', action: 'SELECT_MENU', value: 'AI_SEARCH' }
       ]
     }
@@ -35,7 +34,7 @@ export default function LaborCouncilHome() {
 
   // 폼 및 모달 상태
   const [modalState, setModalState] = useState({ isOpen: false, type: null }); // 'proposal' | 'counsel'
-  const [formData, setFormData] = useState({ category: '근로조건', problem: '', suggestion: '' });
+  const [formData, setFormData] = useState({ authorMode: 'anonymous', author: '', category: '근로조건', problem: '', suggestion: '', counselTrack: 'general' });
   const [formAgreed, setFormAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +45,7 @@ export default function LaborCouncilHome() {
 
     const userText = `[${chatCategory}] 문의 접수`;
     setChatMessages(prev => [...prev, { sender: 'user', text: userText }]);
-    
+
     setChatProblem('');
     setChatSuggestion('');
     setChatCategory('근로조건');
@@ -162,7 +161,7 @@ export default function LaborCouncilHome() {
         try {
           const response = await fetch('/api/check-ip');
           const data = await response.json();
-          
+
           if (data.allowed) {
             setChatMessages(prev => [...prev, {
               sender: 'bot',
@@ -194,16 +193,6 @@ export default function LaborCouncilHome() {
             ]
           }]);
         }
-      } else if (option.value === 'INQUIRY') {
-        setChatMode('inquiry');
-        setChatAgreed(false);
-        setChatCategory('근로조건');
-        setChatProblem('');
-        setChatSuggestion('');
-        setChatMessages(prev => [...prev, {
-          sender: 'bot',
-          text: '답변을 받으실 이메일 주소와 문의 내용을 화면 하단에 입력해 주세요.'
-        }]);
       } else if (option.value === 'AI_SEARCH') {
         setChatMode('ai_search');
         setInputMessage('');
@@ -224,7 +213,6 @@ export default function LaborCouncilHome() {
           text: '처음으로 돌아왔습니다. 원하시는 메뉴를 선택해 주세요.',
           options: [
             { label: '규정 파일 다운로드', action: 'SELECT_MENU', value: 'REGULATION' },
-            { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' },
             { label: '일반 문의 (AI 검색)', action: 'SELECT_MENU', value: 'AI_SEARCH' }
           ]
         }]);
@@ -251,7 +239,7 @@ export default function LaborCouncilHome() {
 
   const openModal = (type) => {
     setModalState({ isOpen: true, type });
-    setFormData({ category: '근로조건', problem: '', suggestion: '' });
+    setFormData({ authorMode: 'anonymous', author: '', category: '근로조건', problem: '', suggestion: '', counselTrack: 'general' });
     setFormAgreed(false);
   };
 
@@ -262,6 +250,10 @@ export default function LaborCouncilHome() {
   const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!formData.suggestion.trim()) return;
+    if (formData.authorMode === 'named' && !formData.author.trim()) {
+      alert('성명 및 소속을 입력해 주세요.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -270,6 +262,9 @@ export default function LaborCouncilHome() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: modalState.type,
+          counselTrack: modalState.type === 'counsel' ? formData.counselTrack : null,
+          authorMode: formData.authorMode,
+          author: formData.authorMode === 'named' ? formData.author : '익명',
           category: formData.category,
           problem: formData.problem,
           suggestion: formData.suggestion
@@ -277,7 +272,7 @@ export default function LaborCouncilHome() {
       });
 
       if (response.ok) {
-        alert(modalState.type === 'proposal' ? '안건 제안이 성공적으로 접수되었습니다.' : '고충 상담이 성공적으로 접수되었습니다. 철저히 비밀이 보장됩니다.');
+        alert(modalState.type === 'proposal' ? '안건 제안이 성공적으로 접수되었습니다.' : '고충 상담이 성공적으로 접수되었습니다.');
         closeModal();
       } else {
         alert('접수 중 오류가 발생했습니다. 다시 시도해 주세요.');
@@ -298,13 +293,13 @@ export default function LaborCouncilHome() {
           <div className="flex items-center space-x-3">
             <Users className="w-7 h-7 text-blue-300" />
             <div>
-              <h1 className="text-xl font-bold tracking-tight">근로자 노사협의회</h1>
-              <p className="text-xs text-blue-200">근로자의 목소리를 대변하는 근로자위원 소통 창구</p>
+              <h1 className="text-xl font-bold tracking-tight">행복ICT 노사협의회 소통 플랫폼</h1>
+              <p className="text-xs text-blue-200">근로자의 목소리에 늘 켜져(ON) 있는 따뜻한(溫) 소통 채널</p>
             </div>
           </div>
           <nav className="hidden md:flex space-x-6 text-sm font-medium">
             <a href="#proposals" onClick={(e) => { e.preventDefault(); openModal('proposal'); }} className="hover:text-blue-300 transition-colors cursor-pointer">안건제안</a>
-            <a href="#counsel" onClick={(e) => { e.preventDefault(); openModal('counsel'); }} className="hover:text-blue-300 transition-colors cursor-pointer">익명 고충상담</a>
+            <a href="#counsel" onClick={(e) => { e.preventDefault(); openModal('counsel'); }} className="hover:text-blue-300 transition-colors cursor-pointer">고충상담</a>
           </nav>
         </div>
       </header>
@@ -320,7 +315,7 @@ export default function LaborCouncilHome() {
               여러분의 의견이 더 나은 일터를 만듭니다
             </h2>
             <p className="text-blue-100 text-sm md:text-base mb-8 max-w-2xl mx-auto">
-              근로조건 개선, 복리후생 확대, 고충사항 등 언제든지 자유롭게 제안해 주세요.
+              근로조건 개선, 복리후생 확대, 고충사항 등 언제든지 자유롭게 제안해 주세요.<br />
               근로자위원이 함께 고민하고 회사 측에 전달하겠습니다.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
@@ -328,7 +323,7 @@ export default function LaborCouncilHome() {
                 안건 제안하기
               </a>
               <a onClick={(e) => { e.preventDefault(); openModal('counsel'); }} className="bg-white/10 hover:bg-white/20 text-white font-medium px-6 py-3 rounded-lg text-sm transition-all border border-white/20 cursor-pointer">
-                익명 고충상담
+                고충 상담
               </a>
             </div>
           </div>
@@ -357,13 +352,13 @@ export default function LaborCouncilHome() {
             <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center mb-6">
               <HelpCircle className="w-7 h-7" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-3">익명 고충 상담</h3>
+            <h3 className="text-xl font-bold text-slate-800 mb-3">고충 상담</h3>
             <p className="text-slate-600 mb-6">
-              신원 노출 걱정 없이 직장 내 고충이나 건의사항을 근로자위원에게 전달하세요.
+              직장 내 고충이나 건의사항을 기명 또는 무기명으로 근로자위원에게 전달하세요.
               비밀이 철저히 보장되며 최선을 다해 돕겠습니다.
             </p>
             <a onClick={(e) => { e.preventDefault(); openModal('counsel'); }} className="inline-flex font-semibold text-indigo-600 hover:text-indigo-700 items-center gap-1 cursor-pointer">
-              익명 상담 작성 <ChevronRight className="w-5 h-5" />
+              고충 상담 작성 <ChevronRight className="w-5 h-5" />
             </a>
           </div>
         </div>
@@ -382,7 +377,7 @@ export default function LaborCouncilHome() {
                 </div>
                 <div>
                   <p className="text-sm font-bold">노사협의회 소통 챗봇</p>
-                  <p className="text-[10px] text-blue-200">24시간 안건 접수 및 규정 안내</p>
+                  <p className="text-[10px] text-blue-200">24시간 일반 문의 및 규정 안내</p>
                 </div>
               </div>
               <button
@@ -399,8 +394,8 @@ export default function LaborCouncilHome() {
                 <div key={idx} className="flex flex-col gap-2">
                   <div className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap break-words ${msg.sender === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-white text-slate-800 border border-slate-200 shadow-sm rounded-bl-none'
+                      ? 'bg-blue-600 text-white rounded-br-none'
+                      : 'bg-white text-slate-800 border border-slate-200 shadow-sm rounded-bl-none'
                       }`}>
                       {msg.text}
                     </div>
@@ -417,8 +412,8 @@ export default function LaborCouncilHome() {
                             onClick={() => isLatest && handleOptionClick(opt)}
                             disabled={!isLatest}
                             className={`text-left bg-blue-50 text-blue-700 border border-blue-200 rounded-xl px-3 py-2 text-xs font-medium w-fit shadow-sm max-w-[90%] ${isLatest
-                                ? 'hover:bg-blue-100 transition-colors cursor-pointer'
-                                : 'opacity-60 cursor-default'
+                              ? 'hover:bg-blue-100 transition-colors cursor-pointer'
+                              : 'opacity-60 cursor-default'
                               }`}
                           >
                             {opt.label}
@@ -430,91 +425,6 @@ export default function LaborCouncilHome() {
                 </div>
               ))}
             </div>
-
-            {/* 챗봇 입력폼 */}
-            {chatMode === 'inquiry' && (
-              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 flex flex-col gap-2 max-h-[260px] overflow-y-auto">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-600">분류 선택 (필수)</label>
-                  <select
-                    value={chatCategory}
-                    onChange={(e) => setChatCategory(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600 bg-white"
-                  >
-                    <option value="근로조건">근로조건</option>
-                    <option value="복리후생">복리후생</option>
-                    <option value="조직문화">조직문화</option>
-                    <option value="안전·보건">안전·보건</option>
-                    <option value="기타">기타</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-600">현상 및 문제점 (선택)</label>
-                  <textarea
-                    rows={2}
-                    value={chatProblem}
-                    onChange={(e) => setChatProblem(e.target.value)}
-                    placeholder="현재 어떤 불편이 있는지 작성..."
-                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600 resize-none"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-600">개선 제안 아이디어 (필수)</label>
-                  <textarea
-                    required
-                    rows={2}
-                    value={chatSuggestion}
-                    onChange={(e) => setChatSuggestion(e.target.value)}
-                    placeholder="어떻게 바뀌면 좋을지 제안..."
-                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600 resize-none"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-slate-600">답변 받을 이메일 (필수)</label>
-                  <input
-                    type="email"
-                    value={userEmail}
-                    onChange={(e) => setUserEmail(e.target.value)}
-                    placeholder="example@happyict.co.kr"
-                    required
-                    className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-600"
-                  />
-                </div>
-
-                <div className="flex items-start gap-1.5 px-1 mt-1">
-                  <input
-                    type="checkbox"
-                    id="chatAgreement"
-                    checked={chatAgreed}
-                    onChange={(e) => setChatAgreed(e.target.checked)}
-                    className="mt-0.5 cursor-pointer"
-                  />
-                  <label htmlFor="chatAgreement" className="text-[10px] text-slate-600 leading-tight cursor-pointer">
-                    [필수] 건전한 노사문화를 위해 욕설 및 비방은 삼가주시기 바랍니다. 작성 준수사항에 동의합니다.
-                  </label>
-                </div>
-
-                <div className="flex gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleOptionClick({ action: 'SELECT_MENU', value: 'HOME', label: '처음으로 돌아가기' })}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors"
-                  >
-                    이전으로
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !chatAgreed || !chatSuggestion.trim()}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send className="w-3.5 h-3.5" /> 제출하기
-                  </button>
-                </div>
-              </form>
-            )}
 
             {/* 챗봇 입력폼 (일반 문의 AI 검색) */}
             {chatMode === 'ai_search' && (
@@ -577,7 +487,7 @@ export default function LaborCouncilHome() {
             <div className={`p-5 flex justify-between items-center text-white ${modalState.type === 'proposal' ? 'bg-amber-500' : 'bg-indigo-600'}`}>
               <h3 className="font-bold flex items-center gap-2 text-lg">
                 {modalState.type === 'proposal' ? <Send className="w-5 h-5" /> : <HelpCircle className="w-5 h-5" />}
-                {modalState.type === 'proposal' ? '익명 안건 제안하기' : '익명 고충 상담하기'}
+                {modalState.type === 'proposal' ? '안건 제안하기' : '고충 상담하기'}
               </h3>
               <button onClick={closeModal} className="text-white/80 hover:text-white transition-colors">
                 <X className="w-6 h-6" />
@@ -591,10 +501,95 @@ export default function LaborCouncilHome() {
                 </div>
                 <p>
                   {modalState.type === 'proposal'
-                    ? '작성해주신 안건은 익명으로 안전하게 근로자위원에게 전달되어 다음 정기회의 안건으로 검토됩니다. 자유롭게 제안해 주세요.'
-                    : '고충 및 건의사항은 철저히 익명이 보장되며, 신원 노출 걱정 없이 자유롭게 작성하실 수 있습니다. 근로자위원이 확인 후 대응하겠습니다.'}
+                    ? '작성해주신 안건은 안전하게 근로자위원에게 전달되어 다음 정기회의 안건으로 검토됩니다. 자유롭게 제안해 주세요.'
+                    : '고충 및 건의사항은 근로자위원이 확인 후 대응하겠습니다. 무기명 선택 시 철저히 익명이 보장되며, 신원 노출 걱정 없이 자유롭게 작성하실 수 있습니다.'}
                 </p>
               </div>
+
+              {modalState.type === 'counsel' && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">고충 접수 트랙 선택</label>
+                  <div className="flex flex-col gap-3">
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${formData.counselTrack === 'general' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                      <input
+                        type="radio"
+                        name="counselTrack"
+                        value="general"
+                        checked={formData.counselTrack === 'general'}
+                        onChange={(e) => setFormData({ ...formData, counselTrack: 'general', authorMode: 'anonymous' })}
+                        className="mt-1 cursor-pointer"
+                      />
+                      <div>
+                        <span className="block text-sm font-bold text-slate-800">1. 일반 근무환경 / 복지 / 제도 개선</span>
+                        <span className="block text-xs text-indigo-600 mt-0.5">100% 익명 접수 (개인정보 필요 없음)</span>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${formData.counselTrack === 'harassment' ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                      <input
+                        type="radio"
+                        name="counselTrack"
+                        value="harassment"
+                        checked={formData.counselTrack === 'harassment'}
+                        onChange={(e) => setFormData({ ...formData, counselTrack: 'harassment', authorMode: 'named' })}
+                        className="mt-1 cursor-pointer"
+                      />
+                      <div>
+                        <span className="block text-sm font-bold text-slate-800">2. 개인 피해 / 직장 내 괴롭힘 / 인권</span>
+                        <span className="block text-xs text-red-500 mt-0.5">제한적 익명 / 실명 전환 안내</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {(modalState.type === 'proposal' || (modalState.type === 'counsel' && formData.counselTrack === 'harassment')) && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">작성 방식</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="authorMode"
+                        value="anonymous"
+                        checked={formData.authorMode === 'anonymous'}
+                        onChange={(e) => setFormData({ ...formData, authorMode: e.target.value })}
+                        className="cursor-pointer"
+                      />
+                      <span className="text-sm">무기명 (익명)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="authorMode"
+                        value="named"
+                        checked={formData.authorMode === 'named'}
+                        onChange={(e) => setFormData({ ...formData, authorMode: e.target.value })}
+                        className="cursor-pointer"
+                      />
+                      <span className="text-sm">기명</span>
+                    </label>
+                  </div>
+                  {modalState.type === 'counsel' && formData.counselTrack === 'harassment' && formData.authorMode === 'anonymous' && (
+                    <p className="mt-2 text-xs text-red-500 bg-red-50 p-2 rounded-md border border-red-100">
+                      무기명으로 접수되지만, 가해자 조사 및 사실 관계 확인 등을 위해 추후 실명 전환이 필요할 수 있습니다.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {formData.authorMode === 'named' && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">성명 및 소속 (필수)</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.author}
+                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white"
+                    placeholder="예: 홍길동 선임 / 개발팀"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">분류 선택 (필수)</label>
