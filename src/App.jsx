@@ -21,7 +21,8 @@ export default function LaborCouncilHome() {
       text: '안녕하세요! 노사협의회 근로자위원 챗봇입니다. 원하시는 메뉴를 선택해 주세요.',
       options: [
         { label: '규정 파일 다운로드', action: 'SELECT_MENU', value: 'REGULATION' },
-        { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' }
+        { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' },
+        { label: '일반 문의 (AI 검색)', action: 'SELECT_MENU', value: 'AI_SEARCH' }
       ]
     }
   ]);
@@ -93,6 +94,62 @@ export default function LaborCouncilHome() {
     }
   };
 
+  const handleAiSearch = async (e) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+
+    const query = inputMessage;
+    setInputMessage('');
+    setChatMessages(prev => [...prev, { sender: 'user', text: query }]);
+    setIsSubmitting(true);
+
+    // Add loading indicator
+    setChatMessages(prev => [...prev, { sender: 'bot', text: '웹에서 정보를 검색하여 답변을 생성 중입니다...', isLoading: true, id: 'loading' }]);
+
+    try {
+      const response = await fetch('/api/chat-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userQuery: query })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChatMessages(prev => {
+          const newMessages = prev.filter(msg => msg.id !== 'loading');
+          return [
+            ...newMessages,
+            {
+              sender: 'bot',
+              text: data.answer,
+              options: [
+                { label: '다른 기능 선택하기', action: 'SELECT_MENU', value: 'HOME' }
+              ]
+            }
+          ];
+        });
+      } else {
+        setChatMessages(prev => {
+          const newMessages = prev.filter(msg => msg.id !== 'loading');
+          return [
+            ...newMessages,
+            { sender: 'bot', text: '죄송합니다. 답변을 생성하는 중 오류가 발생했습니다.' }
+          ];
+        });
+      }
+    } catch (error) {
+      setChatMessages(prev => {
+        const newMessages = prev.filter(msg => msg.id !== 'loading');
+        return [
+          ...newMessages,
+          { sender: 'bot', text: '시스템 오류로 인해 답변을 가져오지 못했습니다.' }
+        ];
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleOptionClick = async (option) => {
     // Add user message
     setChatMessages(prev => [...prev, { sender: 'user', text: option.label }]);
@@ -147,6 +204,13 @@ export default function LaborCouncilHome() {
           sender: 'bot',
           text: '답변을 받으실 이메일 주소와 문의 내용을 화면 하단에 입력해 주세요.'
         }]);
+      } else if (option.value === 'AI_SEARCH') {
+        setChatMode('ai_search');
+        setInputMessage('');
+        setChatMessages(prev => [...prev, {
+          sender: 'bot',
+          text: '노동법 일반 상식이나 간단한 단어를 물어보시면 AI가 실시간으로 웹을 검색하여 답변해 드립니다. 무엇이 궁금하신가요?'
+        }]);
       } else if (option.value === 'HOME') {
         setChatMode('menu');
         setInputMessage('');
@@ -160,7 +224,8 @@ export default function LaborCouncilHome() {
           text: '처음으로 돌아왔습니다. 원하시는 메뉴를 선택해 주세요.',
           options: [
             { label: '규정 파일 다운로드', action: 'SELECT_MENU', value: 'REGULATION' },
-            { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' }
+            { label: '담당자에게 문의 남기기', action: 'SELECT_MENU', value: 'INQUIRY' },
+            { label: '일반 문의 (AI 검색)', action: 'SELECT_MENU', value: 'AI_SEARCH' }
           ]
         }]);
       }
@@ -333,7 +398,7 @@ export default function LaborCouncilHome() {
               {chatMessages.map((msg, idx) => (
                 <div key={idx} className="flex flex-col gap-2">
                   <div className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${msg.sender === 'user'
+                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap break-words ${msg.sender === 'user'
                         ? 'bg-blue-600 text-white rounded-br-none'
                         : 'bg-white text-slate-800 border border-slate-200 shadow-sm rounded-bl-none'
                       }`}>
@@ -449,6 +514,43 @@ export default function LaborCouncilHome() {
                   </button>
                 </div>
               </form>
+            )}
+
+            {/* 챗봇 입력폼 (일반 문의 AI 검색) */}
+            {chatMode === 'ai_search' && (
+              <div className="p-3 bg-white border-t border-slate-200 flex flex-col gap-2">
+                <form onSubmit={handleAiSearch} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder="질문을 입력해 주세요..."
+                    disabled={isSubmitting}
+                    className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-600"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !inputMessage.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOptionClick({ action: 'SELECT_MENU', value: 'HOME', label: '처음으로 돌아가기' })}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors"
+                  >
+                    이전으로
+                  </button>
+                </div>
+                <div className="text-center mt-1">
+                  <span className="text-[9.5px] text-slate-500 leading-tight block px-1">
+                    본 AI 검색 기능은 사용자의 질문 및 답변 내용을 서버나 DB에 일절 저장하지 않습니다.
+                  </span>
+                </div>
+              </div>
             )}
           </div>
         )}
