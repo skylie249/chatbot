@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   try {
     const { userQuery } = req.body;
-    
+
     if (!userQuery) {
       return res.status(400).json({ error: 'userQuery is required' });
     }
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     // 2. Gemini API 호출
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
     const prompt = `너는 최신 검색 결과를 바탕으로 질문에 친절하게 답변해주는 노사협의회 챗봇 AI Assistant이다.
 제공된 [검색 결과]를 바탕으로 사용자의 질문에 정확하고 요약해서 답변해줘.
