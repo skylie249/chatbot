@@ -2,29 +2,37 @@
 // deployment. Vercel's own edge overwrites x-forwarded-for / x-real-ip /
 // x-vercel-forwarded-for with the Cloudflare hop's IP rather than the
 // original client, so those headers only ever show Cloudflare's edge IP
-// here. cf-connecting-ip is set by Cloudflare itself and survives that
-// hop untouched, so it's the only header carrying the real client IP in
-// this setup - confirmed via api/check-ip.js debug output.
+// here. cf-connecting-ip is set by Cloudflare itself and carries the real
+// client IP - confirmed via api/check-ip.js debug output - but only for
+// requests that actually went through Cloudflare. Vercel projects are
+// also reachable directly on their own *.vercel.app URL, bypassing
+// Cloudflare entirely, and a request sent straight there could set its
+// own fake cf-connecting-ip.
 //
-// cf-connecting-ip is only trustworthy for requests that actually came
-// through Cloudflare. Vercel deployments are typically also reachable
-// directly on their own *.vercel.app URL, bypassing Cloudflare entirely -
-// a request sent straight there could set its own fake cf-connecting-ip
-// and there'd be nothing to stop it. As a mitigation, only trust the
-// header when the Host the request came in on matches the expected
-// public domain; anything else falls back to the raw connection info,
-// which won't match ALLOWED_IPS. This is defense in depth, not a
-// complete fix - if Vercel passes through a client-forged Host header
-// unchanged for direct *.vercel.app requests, both headers could be
-// forged together. The more robust fix is disabling/protecting the
-// default *.vercel.app alias in the Vercel project settings so
-// Cloudflare is the only way in.
-const TRUSTED_HOST = process.env.TRUSTED_HOST || 'on.nexalab.app';
+// Vercel's free plan has no Deployment Protection to lock that URL down,
+// so instead a Cloudflare Transform Rule injects a secret header on every
+// request it forwards to the origin - set this up once in the Cloudflare
+// dashboard:
+//   Rules -> Transform Rules -> Modify Request Header -> Set static
+//   header, scoped to the on.nexalab.app hostname:
+//     header name:  x-cf-shared-secret
+//     value:        <same value as CF_SHARED_SECRET below>
+// Only requests carrying that exact secret are treated as having come
+// through Cloudflare; anything else (including direct *.vercel.app hits,
+// which never reach the Transform Rule) falls back to the raw connection
+// info, which won't match ALLOWED_IPS. Unlike a Host-header check, this
+// can't be spoofed by a client crafting its own request - only Cloudflare
+// knows the secret.
+const SHARED_SECRET_HEADER = 'x-cf-shared-secret';
+
+function passedThroughCloudflare(req) {
+  const secret = process.env.CF_SHARED_SECRET;
+  return Boolean(secret) && req.headers[SHARED_SECRET_HEADER] === secret;
+}
 
 export function getClientIp(req) {
-  const host = req.headers['host'];
   const cfIp = req.headers['cf-connecting-ip'];
-  if (cfIp && host === TRUSTED_HOST) {
+  if (cfIp && passedThroughCloudflare(req)) {
     return Array.isArray(cfIp) ? cfIp[0].trim() : cfIp.trim();
   }
 
