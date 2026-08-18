@@ -1,15 +1,29 @@
+// NOTE: duck-duck-scrape is an unofficial HTML scraper of DuckDuckGo, not
+// a supported API. It can break or start returning empty/blocked results
+// at any time without notice. The catch block below falls back to the
+// model's own knowledge when the search fails, so a scraper outage
+// degrades answer quality rather than taking the endpoint down - but if
+// search results become unreliable long-term, consider swapping to an
+// official search API.
 import { search } from 'duck-duck-scrape';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { isRateLimited } from './_lib/rateLimit.js';
+import { getClientIp } from './_lib/clientIp.js';
+import { isNonEmptyString } from './_lib/validate.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  try {
-    const { userQuery } = req.body;
+  if (isRateLimited(`chat-search:${getClientIp(req)}`, { windowMs: 60_000, max: 10 })) {
+    return res.status(429).json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' });
+  }
 
-    if (!userQuery) {
+  try {
+    const { userQuery } = req.body || {};
+
+    if (!isNonEmptyString(userQuery, 500)) {
       return res.status(400).json({ error: 'userQuery is required' });
     }
 
