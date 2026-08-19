@@ -10,15 +10,21 @@
 // own fake cf-connecting-ip.
 //
 // Vercel's free plan has no Deployment Protection to lock that URL down,
-// so instead a Cloudflare Worker (see cloudflare-worker.js, routed to
-// on.nexalab.app/*) injects a secret header on every request it forwards
+// so instead a Cloudflare Transform Rule (Rules -> Transform Rules ->
+// Modify Request Header, scoped to hostname on.nexalab.app; a Cloudflare
+// Worker in cloudflare-worker.js does the same thing if Transform Rules
+// isn't available) injects a secret header on every request it forwards
 // to the origin. Only requests carrying that exact secret are treated as
 // having come through Cloudflare; anything else (including direct
-// *.vercel.app hits, which never pass through the Worker) falls back to
+// *.vercel.app hits, which never pass through the rule) falls back to
 // the raw connection info, which won't match ALLOWED_IPS. Unlike a
 // Host-header check, this can't be spoofed by a client crafting its own
-// request - only the Worker knows the secret.
-const SHARED_SECRET_HEADER = 'x-cf-shared-secret';
+// request - only Cloudflare knows the secret.
+//
+// Note: header names starting with cf- / x-cf- are reserved by
+// Cloudflare and rejected by Transform Rules, hence x-nexalab-secret
+// instead of the more obvious x-cf-shared-secret.
+const SHARED_SECRET_HEADER = 'x-nexalab-secret';
 
 function passedThroughCloudflare(req) {
   const secret = process.env.CF_SHARED_SECRET;

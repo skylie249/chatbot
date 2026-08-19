@@ -19,7 +19,7 @@
 export default {
   async fetch(request, env) {
     const forwarded = new Request(request);
-    forwarded.headers.set('x-cf-shared-secret', env.CF_SHARED_SECRET);
+    forwarded.headers.set('x-nexalab-secret', env.CF_SHARED_SECRET);
     return fetch(forwarded);
   }
 };
