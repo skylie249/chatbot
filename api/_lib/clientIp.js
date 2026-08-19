@@ -11,15 +11,21 @@
 //
 // Vercel's free plan has no Deployment Protection to lock that URL down,
 // so instead a Cloudflare Transform Rule (Rules -> Transform Rules ->
-// Modify Request Header, scoped to hostname on.nexalab.app; a Cloudflare
-// Worker in cloudflare-worker.js does the same thing if Transform Rules
-// isn't available) injects a secret header on every request it forwards
-// to the origin. Only requests carrying that exact secret are treated as
-// having come through Cloudflare; anything else (including direct
-// *.vercel.app hits, which never pass through the rule) falls back to
-// the raw connection info, which won't match ALLOWED_IPS. Unlike a
-// Host-header check, this can't be spoofed by a client crafting its own
-// request - only Cloudflare knows the secret.
+// Modify Request Header, scoped to hostname on.nexalab.app) injects a
+// secret header on every request it forwards to the origin. Only
+// requests carrying that exact secret are treated as having come through
+// Cloudflare; anything else (including direct *.vercel.app hits, which
+// never pass through the rule) falls back to the raw connection info.
+// Unlike a Host-header check, this can't be spoofed by a client crafting
+// its own request - only Cloudflare knows the secret.
+//
+// Verified 2026-08-19: Vercel itself does not trust a client-supplied
+// x-forwarded-for on direct *.vercel.app hits - it overwrites it with
+// the IP it actually observed the connection from, so a forged
+// X-Forwarded-For header sent straight to Vercel is ignored (confirmed
+// via curl from off-network with a spoofed header -> allowed:false).
+// The secret-header check above is still worth keeping as defense in
+// depth in case that ever changes, but it isn't closing an active hole.
 //
 // Note: header names starting with cf- / x-cf- are reserved by
 // Cloudflare and rejected by Transform Rules, hence x-nexalab-secret
