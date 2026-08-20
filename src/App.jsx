@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronRight, Users, Send } from 'lucide-react';
+import { HelpCircle, ChevronRight, Users, Send, Menu, X } from 'lucide-react';
 import ChatWidget from './components/ChatWidget.jsx';
 import InquiryModal from './components/InquiryModal.jsx';
 
 export default function LaborCouncilHome() {
   const [modalState, setModalState] = useState({ isOpen: false, type: null }); // 'proposal' | 'counsel'
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const openModal = (type) => setModalState({ isOpen: true, type });
+  const openModal = (type) => {
+    setIsMenuOpen(false);
+    setModalState({ isOpen: true, type });
+  };
   const closeModal = () => setModalState({ isOpen: false, type: null });
 
   return (
@@ -25,7 +29,21 @@ export default function LaborCouncilHome() {
             <button type="button" onClick={() => openModal('proposal')} className="hover:text-blue-300 transition-colors cursor-pointer">안건제안</button>
             <button type="button" onClick={() => openModal('counsel')} className="hover:text-blue-300 transition-colors cursor-pointer">고충상담</button>
           </nav>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="md:hidden p-2 -mr-2 text-white cursor-pointer"
+            aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+          >
+            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+        {isMenuOpen && (
+          <nav className="md:hidden border-t border-blue-800 px-4 py-2 flex flex-col text-sm font-medium">
+            <button type="button" onClick={() => openModal('proposal')} className="text-left py-2.5 hover:text-blue-300 transition-colors cursor-pointer">안건제안</button>
+            <button type="button" onClick={() => openModal('counsel')} className="text-left py-2.5 hover:text-blue-300 transition-colors cursor-pointer">고충상담</button>
+          </nav>
+        )}
       </header>
 
       {/* 히어로 섹션 */}

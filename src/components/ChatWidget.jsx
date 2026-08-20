@@ -150,9 +150,9 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+    <div className="fixed top-24 bottom-6 right-6 z-40 flex flex-col items-end justify-end gap-3">
       {isChatOpen && (
-        <div className="bg-white w-80 md:w-96 h-[460px] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-200 mb-2">
+        <div className="bg-white w-80 md:w-96 h-[460px] min-h-0 rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-200 mb-2">
           <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
@@ -250,7 +250,7 @@ export default function ChatWidget() {
       <button
         type="button"
         onClick={() => setIsChatOpen(!isChatOpen)}
-        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group relative"
+        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group relative shrink-0"
         aria-label="노사협의회 챗봇 열기"
       >
         <Bot className="w-6 h-6 text-amber-300" />
