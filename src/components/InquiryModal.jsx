@@ -63,9 +63,9 @@ export default function InquiryModal({ type, isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-        <div className={`p-5 flex justify-between items-center text-white ${type === 'proposal' ? 'bg-amber-500' : 'bg-indigo-600'}`}>
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] my-8 animate-in fade-in zoom-in duration-200">
+        <div className={`p-5 flex justify-between items-center text-white shrink-0 ${type === 'proposal' ? 'bg-amber-500' : 'bg-indigo-600'}`}>
           <h3 className="font-bold flex items-center gap-2 text-lg">
             {type === 'proposal' ? <Send className="w-5 h-5" /> : <HelpCircle className="w-5 h-5" />}
             {type === 'proposal' ? '안건 제안하기' : '고충 상담하기'}
@@ -75,7 +75,8 @@ export default function InquiryModal({ type, isOpen, onClose }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmitForm} className="p-6 flex flex-col gap-5">
+        <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
+          <div className="p-6 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
           <div className="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-start gap-3">
             <div className={`mt-0.5 ${type === 'proposal' ? 'text-amber-500' : 'text-indigo-500'}`}>
               <HelpCircle className="w-5 h-5" />
@@ -102,7 +103,15 @@ export default function InquiryModal({ type, isOpen, onClose }) {
                   />
                   <div>
                     <span className="block text-sm font-bold text-slate-800">1. 일반 근무환경 / 복지 / 제도 개선</span>
-                    <span className="block text-xs text-indigo-600 mt-0.5">100% 익명 접수 (개인정보 필요 없음)</span>
+                    <span className="flex items-center gap-1 text-xs text-indigo-600 mt-0.5">
+                      100% 익명 접수 (개인정보 필요 없음)
+                      <span className="relative group">
+                        <HelpCircle className="w-3.5 h-3.5 text-indigo-400 cursor-help" />
+                        <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-64 p-2 text-xs leading-snug font-normal text-white bg-slate-800 rounded-md shadow-lg z-10">
+                          무기명 선택 시, 회신을 위한 연락 경로가 없어 개별 피드백은 드리지 못하는 점 양해 부탁드립니다.
+                        </span>
+                      </span>
+                    </span>
                   </div>
                 </label>
                 <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${formData.counselTrack === 'harassment' ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
@@ -125,7 +134,15 @@ export default function InquiryModal({ type, isOpen, onClose }) {
 
           {(type === 'proposal' || (type === 'counsel' && formData.counselTrack === 'harassment')) && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">작성 방식</label>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <label className="text-sm font-semibold text-slate-700">작성 방식</label>
+                <div className="relative group">
+                  <HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                  <div className="absolute left-0 bottom-full mb-1.5 hidden group-hover:block w-64 p-2 text-xs leading-snug text-white bg-slate-800 rounded-md shadow-lg z-10">
+                    무기명 선택 시, 회신을 위한 연락 경로가 없어 개별 피드백은 드리지 못하는 점 양해 부탁드립니다.
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -222,8 +239,9 @@ export default function InquiryModal({ type, isOpen, onClose }) {
               [필수] 건전한 노사문화를 위해 욕설, 비방, 인신공격 등의 내용은 삼가주시기 바랍니다. 위 작성 준수사항을 확인하였으며, 이에 동의합니다.
             </label>
           </div>
+          </div>
 
-          <div className="flex justify-end gap-3 mt-2">
+          <div className="flex justify-end gap-3 p-6 pt-4 border-t border-slate-200 shrink-0">
             <button
               type="button"
               onClick={onClose}
