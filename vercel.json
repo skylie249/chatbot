@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/download-regulation.js": {
+      "includeFiles": "regulations/**"
+    }
+  }
+}

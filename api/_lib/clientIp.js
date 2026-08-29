@@ -1,0 +1,62 @@
+// NOTE: on.nexalab.app is Cloudflare-proxied DNS in front of a Vercel
+// deployment. Vercel's own edge overwrites x-forwarded-for / x-real-ip /
+// x-vercel-forwarded-for with the Cloudflare hop's IP rather than the
+// original client, so those headers only ever show Cloudflare's edge IP
+// here. cf-connecting-ip is set by Cloudflare itself and carries the real
+// client IP - confirmed via api/check-ip.js debug output - but only for
+// requests that actually went through Cloudflare. Vercel projects are
+// also reachable directly on their own *.vercel.app URL, bypassing
+// Cloudflare entirely, and a request sent straight there could set its
+// own fake cf-connecting-ip.
+//
+// Vercel's free plan has no Deployment Protection to lock that URL down,
+// so instead a Cloudflare Transform Rule (Rules -> Transform Rules ->
+// Modify Request Header, scoped to hostname on.nexalab.app) injects a
+// secret header on every request it forwards to the origin. Only
+// requests carrying that exact secret are treated as having come through
+// Cloudflare; anything else (including direct *.vercel.app hits, which
+// never pass through the rule) falls back to the raw connection info.
+// Unlike a Host-header check, this can't be spoofed by a client crafting
+// its own request - only Cloudflare knows the secret.
+//
+// Verified 2026-08-19: Vercel itself does not trust a client-supplied
+// x-forwarded-for on direct *.vercel.app hits - it overwrites it with
+// the IP it actually observed the connection from, so a forged
+// X-Forwarded-For header sent straight to Vercel is ignored (confirmed
+// via curl from off-network with a spoofed header -> allowed:false).
+// The secret-header check above is still worth keeping as defense in
+// depth in case that ever changes, but it isn't closing an active hole.
+//
+// Note: header names starting with cf- / x-cf- are reserved by
+// Cloudflare and rejected by Transform Rules, hence x-nexalab-secret
+// instead of the more obvious x-cf-shared-secret.
+const SHARED_SECRET_HEADER = 'x-nexalab-secret';
+
+function passedThroughCloudflare(req) {
+  const secret = process.env.CF_SHARED_SECRET;
+  return Boolean(secret) && req.headers[SHARED_SECRET_HEADER] === secret;
+}
+
+export function getClientIp(req) {
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (cfIp && passedThroughCloudflare(req)) {
+    return Array.isArray(cfIp) ? cfIp[0].trim() : cfIp.trim();
+  }
+
+  let ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
+
+  if (ip.includes(',')) {
+    ip = ip.split(',')[0].trim();
+  }
+
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+
+  return ip;
+}
+
+export function isAllowedIp(ip) {
+  const allowedIps = (process.env.ALLOWED_IPS || '').split(',').map(entry => entry.trim());
+  return allowedIps.includes(ip) || allowedIps.includes('*');
+}

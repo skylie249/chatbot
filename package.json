@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "badwords-ko": "^1.0.4",
     "duck-duck-scrape": "^2.2.7",
     "lucide-react": "^1.25.0",
     "nodemailer": "^9.0.3",
