@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HelpCircle, ChevronRight, Users, Send, Menu, X } from 'lucide-react';
 import ChatWidget from './components/ChatWidget.jsx';
 import InquiryModal from './components/InquiryModal.jsx';
+import { trackEvent } from './lib/track.js';
 
 export default function LaborCouncilHome() {
   const [modalState, setModalState] = useState({ isOpen: false, type: null }); // 'proposal' | 'counsel'
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  useEffect(() => {
+    trackEvent('visit');
+  }, []);
+
   const openModal = (type) => {
+    trackEvent('inquiry');
     setIsMenuOpen(false);
     setModalState({ isOpen: true, type });
   };
